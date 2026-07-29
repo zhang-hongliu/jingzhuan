@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- 物品照片存储目录：filesDir/photos -->
+    <files-path name="photos" path="photos/" />
+</paths>
