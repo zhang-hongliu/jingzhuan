@@ -16,4 +16,14 @@ object Prefs {
     fun setEnabled(context: Context, enabled: Boolean) {
         sp(context).edit().putBoolean(KEY_ENABLED, enabled).apply()
     }
+
+    // 通知待办抓取开关（默认开启）
+    private const val KEY_TODOS_ENABLED = "todos_enabled"
+
+    fun isTodosEnabled(context: Context): Boolean =
+        sp(context).getBoolean(KEY_TODOS_ENABLED, true)
+
+    fun setTodosEnabled(context: Context, enabled: Boolean) {
+        sp(context).edit().putBoolean(KEY_TODOS_ENABLED, enabled).apply()
+    }
 }

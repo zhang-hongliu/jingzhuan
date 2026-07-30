@@ -65,5 +65,21 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <!-- 通知待办：监听手机通知（需在系统「通知使用权」授权） -->
+        <service
+            android:name=".todos.TodoListenerService"
+            android:label="通知待办监听"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <activity
+            android:name=".todos.TodoListActivity"
+            android:exported="false"
+            android:label="通知待办" />
     </application>
 </manifest>
