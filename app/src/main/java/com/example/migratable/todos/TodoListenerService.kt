@@ -21,11 +21,22 @@ class TodoListenerService : NotificationListenerService() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /**
+     * 不抓取此类 App 的通知。这类是纯支付 / 金融类应用，其通知几乎都是
+     * 「支付成功 / 交易确认 / 账单」等交易回执，不属于待办，强行解析会
+     * 把支付信息误建成待办。
+     */
+    private val IGNORE_PACKAGES = setOf(
+        "com.eg.android.AlipayGphone", // 支付宝：交易 / 支付回执
+        "com.eg.android.AlipayGphoneRC" // 支付宝（双开 / 测试版）
+    )
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (!Prefs.isTodosEnabled(this)) return
 
         val pkg = sbn.packageName
         if (pkg == packageName) return // 忽略自身通知
+        if (pkg in IGNORE_PACKAGES) return // 忽略支付类 App 的交易回执，避免误建待办
 
         val extras = sbn.notification.extras ?: return
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.trim()
