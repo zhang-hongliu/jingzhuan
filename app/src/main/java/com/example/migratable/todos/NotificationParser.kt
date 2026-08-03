@@ -79,25 +79,13 @@ object NotificationParser {
     /** 取 index 所在的那「句」（以换行或中英文标点切分） */
     private fun sentenceAround(text: String, index: Int): String? {
         if (index < 0 || index >= text.length) return null
-        val seps = listOf('\n', '。', '；', ';', '，', ',')
+        val seps = charArrayOf('\n', '。', '；', ';', '，', ',')
         var s = text.lastIndexOfAny(seps, index)
         var e = text.indexOfAny(seps, index)
         s = if (s < 0) 0 else s + 1
         e = if (e < 0) text.length else e
         return text.substring(s, e).trim().takeIf { it.isNotBlank() }
     }
-
-    fun ParsedTodo.toEntity(sourceApp: String?, sourceTitle: String?) = TodoEntity(
-        type = type,
-        title = title,
-        content = content,
-        code = code,
-        sourceApp = sourceApp,
-        sourceTitle = sourceTitle,
-        rawText = null,
-        dueAt = dueAt,
-        done = false
-    )
 }
 
 data class ParsedTodo(
@@ -107,4 +95,17 @@ data class ParsedTodo(
     val code: String? = null,
     val courier: String? = null,
     val dueAt: Long? = null
+)
+
+/** 解析结果转持久化实体（顶层扩展，便于跨文件直接调用） */
+fun ParsedTodo.toEntity(sourceApp: String?, sourceTitle: String?) = TodoEntity(
+    type = type,
+    title = title,
+    content = content,
+    code = code,
+    sourceApp = sourceApp,
+    sourceTitle = sourceTitle,
+    rawText = null,
+    dueAt = dueAt,
+    done = false
 )
