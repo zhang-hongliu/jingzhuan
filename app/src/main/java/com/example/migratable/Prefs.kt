@@ -26,4 +26,14 @@ object Prefs {
     fun setTodosEnabled(context: Context, enabled: Boolean) {
         sp(context).edit().putBoolean(KEY_TODOS_ENABLED, enabled).apply()
     }
+
+    // 安心提醒语库是否已首次播种（内置语库写入数据库）
+    private const val KEY_REMINDERS_SEEDED = "reminders_seeded"
+
+    fun isRemindersSeeded(context: Context): Boolean =
+        sp(context).getBoolean(KEY_REMINDERS_SEEDED, false)
+
+    fun setRemindersSeeded(context: Context, seeded: Boolean) {
+        sp(context).edit().putBoolean(KEY_REMINDERS_SEEDED, seeded).apply()
+    }
 }

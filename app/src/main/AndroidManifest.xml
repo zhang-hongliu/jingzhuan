@@ -11,8 +11,9 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@drawable/ic_notification"
-        android:label="重要的事-可迁移"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.Migratable">
 
@@ -81,5 +82,11 @@
             android:name=".todos.TodoListActivity"
             android:exported="false"
             android:label="通知待办" />
+
+        <!-- 安心提醒语库：新增 / 修改 / 删除 -->
+        <activity
+            android:name=".reminders.ReminderLibraryActivity"
+            android:exported="false"
+            android:label="安心提醒语库" />
     </application>
 </manifest>

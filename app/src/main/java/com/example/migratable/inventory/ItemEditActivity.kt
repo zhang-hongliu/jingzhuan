@@ -22,6 +22,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.migratable.R
+import com.example.migratable.inventory.House
+import com.example.migratable.inventory.InventoryDao
+import com.example.migratable.inventory.StorageLocation
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
@@ -45,6 +48,9 @@ class ItemEditActivity : AppCompatActivity() {
     private var houses: List<House> = emptyList()
     private var locations: List<LocationWithHouse> = emptyList()
     private var selectedLocationId: Long? = null
+    private var selectedHouseId: Long? = null
+
+    private lateinit var editCustom: EditText
 
     private lateinit var imgPhoto: ImageView
     private lateinit var textExpiry: TextView
@@ -97,6 +103,7 @@ class ItemEditActivity : AppCompatActivity() {
         textBarcode = findViewById(R.id.text_barcode)
         spinnerHouse = findViewById(R.id.spinner_house)
         spinnerLocation = findViewById(R.id.spinner_location)
+        editCustom = findViewById(R.id.edit_custom_location)
         val editName = findViewById<EditText>(R.id.edit_name)
         val editRemind = findViewById<EditText>(R.id.edit_remind_days)
         val btnDelete = findViewById<Button>(R.id.btn_delete)
@@ -185,7 +192,8 @@ class ItemEditActivity : AppCompatActivity() {
 
         spinnerHouse.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(p: android.widget.AdapterView<*>?, v: View?, pos: Int, id: Long) {
-                setupLocationSpinner(if (pos == 0) null else houses[pos - 1].id)
+                selectedHouseId = if (pos == 0) null else houses[pos - 1].id
+                setupLocationSpinner(selectedHouseId)
             }
             override fun onNothingSelected(p: android.widget.AdapterView<*>?) {}
         }
@@ -301,6 +309,17 @@ class ItemEditActivity : AppCompatActivity() {
     private fun saveItem(name: String, remindDays: Int) {
         lifecycleScope.launch {
             val dao = AppDatabase.get(this@ItemEditActivity).inventoryDao()
+
+            // 手动填写的位置优先：按所选房子查找或新建位置
+            val custom = editCustom.text.toString().trim()
+            if (custom.isNotEmpty()) {
+                val houseId = selectedHouseId ?: ensureDefaultHouse(dao)
+                val loc = dao.findLocation(houseId, custom)
+                    ?: StorageLocation(houseId = houseId, name = custom)
+                        .let { l -> l.copy(id = dao.insertLocation(l)) }
+                selectedLocationId = loc.id
+            }
+
             val base = existing
             if (base == null) {
                 dao.insertItem(
@@ -325,6 +344,12 @@ class ItemEditActivity : AppCompatActivity() {
             Toast.makeText(this@ItemEditActivity, "已保存", Toast.LENGTH_SHORT).show()
             finish()
         }
+    }
+
+    /** 未选择房子时，确保存在一个默认房子「我的家」并返回其 id */
+    private suspend fun ensureDefaultHouse(dao: InventoryDao): Long {
+        val existingHouse = dao.findHouse("我的家")
+        return existingHouse?.id ?: dao.insertHouse(House(name = "我的家"))
     }
 
     private fun confirmDelete() {

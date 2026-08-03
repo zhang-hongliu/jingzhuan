@@ -3,6 +3,8 @@ package com.example.migratable
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.example.migratable.reminders.ReminderDatabase
+import com.example.migratable.reminders.Reminders
 import java.util.Calendar
 
 /**
@@ -18,7 +20,12 @@ class ReminderWorker(context: Context, params: WorkerParameters) :
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         if (hour < 9 || hour >= 22) return Result.success() // 窗口外静默跳过
 
-        val msg = MessageProvider.random()
+        // 确保内置语库已播种进数据库
+        Reminders.bootstrap(applicationContext)
+
+        val userTexts = ReminderDatabase.get(applicationContext).reminderDao()
+            .listAll().map { it.text }
+        val msg = MessageProvider.random(userTexts)
         NotificationHelper.show(applicationContext, msg)
         return Result.success()
     }

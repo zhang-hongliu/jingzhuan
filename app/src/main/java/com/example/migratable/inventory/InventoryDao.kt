@@ -34,6 +34,14 @@ interface InventoryDao {
     @Delete
     suspend fun deleteLocation(location: StorageLocation)
 
+    /** 按房子 + 名称查找位置（用于手动填写位置去重） */
+    @Query("SELECT * FROM locations WHERE houseId = :houseId AND name = :name LIMIT 1")
+    suspend fun findLocation(houseId: Long, name: String): StorageLocation?
+
+    /** 按名称查找房子（用于兜底默认房子） */
+    @Query("SELECT * FROM houses WHERE name = :name LIMIT 1")
+    suspend fun findHouse(name: String): House?
+
     @Transaction
     @Query("SELECT * FROM locations ORDER BY houseId, id")
     fun observeLocations(): Flow<List<LocationWithHouse>>
