@@ -24,14 +24,12 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.5"
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
-
+      # 用 gradle 命令直接构建，绕过项目里坏的 gradlew
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
-        env:
-          GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4g"  # 防止内存不足
+        run: gradle assembleDebug --stacktrace --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
