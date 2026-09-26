@@ -47,6 +47,7 @@ class ColoringActivity : AppCompatActivity() {
 
     private var busy = false
     private var threshold = 50
+    private var autoThreshold = true
     private var minArea = 60
     private var thicken = 1
     private var mode = ColoringProcessor.EdgeMode.XDOG
@@ -83,8 +84,15 @@ class ColoringActivity : AppCompatActivity() {
         val labelClean = findViewById<TextView>(R.id.text_clean)
         val labelThicken = findViewById<TextView>(R.id.text_thicken)
 
+        findViewById<android.widget.CheckBox>(R.id.check_auto)
+            .setOnCheckedChangeListener { _, checked -> autoThreshold = checked }
+
         val refresh = {
-            labelThreshold.text = "线条量：$threshold（越小线越多）"
+            labelThreshold.text = if (autoThreshold) {
+                "线条量：自动（约 6% 墨迹）"
+            } else {
+                "线条量：$threshold（手动，越小线越多）"
+            }
             labelClean.text = "清理杂线：$minArea（越大删得越狠）"
             labelThicken.text = "描边加粗：$thicken"
         }
@@ -120,6 +128,7 @@ class ColoringActivity : AppCompatActivity() {
     private fun currentOptions() = ColoringProcessor.Options(
         mode = mode,
         threshold = threshold,
+        autoThreshold = autoThreshold,
         minArea = minArea,
         thicken = thicken
     )

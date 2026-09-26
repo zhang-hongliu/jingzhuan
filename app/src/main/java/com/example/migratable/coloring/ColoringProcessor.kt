@@ -36,8 +36,12 @@ object ColoringProcessor {
         val mode: EdgeMode = EdgeMode.XDOG,
         /** 高斯模糊 sigma，越大越去噪、线条越少 */
         val blurSigma: Float = 1.4f,
-        /** 二值化阈值 0..255，越小线条越多越碎 */
+        /** 二值化阈值 0..255，越小线条越多越碎（autoThreshold 关闭时生效） */
         val threshold: Int = 50,
+        /** 自动按目标墨迹比例反推阈值，避免不同照片明暗差异导致线太多或太糊 */
+        val autoThreshold: Boolean = true,
+        /** 自动模式下的目标墨迹占比 */
+        val inkRatio: Float = 0.06f,
         /** 小于该像素数的连通块当作杂线删除 */
         val minArea: Int = 60,
         /** 描边加粗半径 0..3 */
@@ -95,8 +99,10 @@ object ColoringProcessor {
             EdgeMode.SOBEL -> sobel(gray, w, h, opt.blurSigma)
         }
 
+        val threshold =
+            if (opt.autoThreshold) autoThreshold(ink, opt.inkRatio) else opt.threshold
         val mask = BooleanArray(w * h)
-        for (i in ink.indices) mask[i] = ink[i] >= opt.threshold
+        for (i in ink.indices) mask[i] = ink[i] >= threshold
 
         cleanLines(mask, w, h, opt.minArea, opt.dropLargeBlocks)
 
@@ -272,6 +278,22 @@ object ColoringProcessor {
             }
         }
         return out
+    }
+
+    /**
+     * 自适应阈值：统计墨迹强度直方图，从强到弱累积到目标占比处取阈值，
+     * 这样不同明暗 / 不同细节密度的照片都能得到密度接近的线稿。
+     */
+    private fun autoThreshold(ink: IntArray, targetRatio: Float): Int {
+        val hist = IntArray(256)
+        for (v in ink) hist[v]++
+        val target = (ink.size * targetRatio).toInt().coerceAtLeast(1)
+        var acc = 0
+        for (t in 255 downTo 1) {
+            acc += hist[t]
+            if (acc >= target) return t
+        }
+        return 1
     }
 
     // ------------------------------------------------------------------

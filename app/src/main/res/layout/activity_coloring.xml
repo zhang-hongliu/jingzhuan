@@ -61,12 +61,21 @@
                 android:layout_height="wrap_content" />
         </RadioGroup>
 
+        <CheckBox
+            android:id="@+id/check_auto"
+            android:text="自动线条密度（推荐，适配不同明暗的照片）"
+            android:checked="true"
+            android:textSize="12sp"
+            android:layout_marginTop="6dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
         <TextView
             android:id="@+id/text_threshold"
-            android:text="线条量：50（越小线越多）"
+            android:text="线条量：50（手动模式下越小线越多）"
             android:textSize="12sp"
             android:textColor="#666666"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="2dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
