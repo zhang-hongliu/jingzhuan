@@ -4,6 +4,14 @@
 
     <!-- Android 13+ 通知权限；低版本自动忽略 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 读取相册照片（转涂色画） -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- 拍照 / 扫码 -->
     <uses-permission android:name="android.permission.CAMERA" />
@@ -88,5 +96,11 @@
             android:name=".reminders.ReminderLibraryActivity"
             android:exported="false"
             android:label="安心提醒语库" />
+
+        <!-- 照片变涂色画：批量转线稿并导出 PDF -->
+        <activity
+            android:name=".coloring.ColoringActivity"
+            android:exported="false"
+            android:label="照片变涂色画" />
     </application>
 </manifest>

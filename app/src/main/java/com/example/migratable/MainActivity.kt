@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.migratable.coloring.ColoringActivity
 import com.example.migratable.inventory.ExpiryScheduler
 import com.example.migratable.inventory.InventoryActivity
 import com.example.migratable.reminders.ReminderLibraryActivity
@@ -83,6 +84,11 @@ class MainActivity : AppCompatActivity() {
         // ---------- 物品 ----------
         findViewById<Button>(R.id.btn_inventory).setOnClickListener {
             startActivity(Intent(this, InventoryActivity::class.java))
+        }
+
+        // ---------- 照片变涂色画 ----------
+        findViewById<Button>(R.id.btn_coloring).setOnClickListener {
+            startActivity(Intent(this, ColoringActivity::class.java))
         }
 
         // ---------- 通知待办监听 ----------

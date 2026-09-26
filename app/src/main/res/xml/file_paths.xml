@@ -2,4 +2,6 @@
 <paths>
     <!-- 物品照片存储目录：filesDir/photos -->
     <files-path name="photos" path="photos/" />
+    <!-- Android 9 及以下：导出到 Download 的 PDF -->
+    <external-path name="download" path="Download/" />
 </paths>
