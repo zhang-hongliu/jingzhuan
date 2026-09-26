@@ -11,6 +11,7 @@ import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.exp
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
@@ -30,6 +31,15 @@ object ColoringProcessor {
 
     enum class EdgeMode { XDOG, SOBEL }
 
+    /** 线稿：只存二值掩膜，导出 PDF 时再渲染成位图，高清也不会撑爆内存 */
+    data class LineArt(val mask: BooleanArray, val w: Int, val h: Int)
+
+    /**
+     * 参数基准分辨率：界面上的「清理杂线 / 描边加粗」都是按这个尺寸调的，
+     * 换成更高分辨率时自动按比例换算，保证不同档位观感一致。
+     */
+    private const val BASE_SIDE = 1200
+
     data class Options(
         /** 处理分辨率上限，越大越精细但越慢 */
         val maxSide: Int = 1200,
@@ -46,6 +56,8 @@ object ColoringProcessor {
         val minArea: Int = 60,
         /** 描边加粗半径 0..3 */
         val thicken: Int = 1,
+        /** 先膨胀再腐蚀，把断掉的线接起来（线条更连贯） */
+        val closeGaps: Boolean = true,
         /** 删除面积过大的黑色块（暗部糊成一片时很有用） */
         val dropLargeBlocks: Boolean = true
     )
@@ -84,8 +96,8 @@ object ColoringProcessor {
         return fit(upright, maxSide)
     }
 
-    /** 完整管线：原图 → 黑线白底线稿 */
-    fun process(source: Bitmap, opt: Options = Options()): Bitmap {
+    /** 完整管线：原图 → 线稿掩膜（推荐，省内存，导出前再渲染） */
+    fun processMask(source: Bitmap, opt: Options = Options()): LineArt {
         val work = fit(source, opt.maxSide)
         val w = work.width
         val h = work.height
@@ -104,10 +116,67 @@ object ColoringProcessor {
         val mask = BooleanArray(w * h)
         for (i in ink.indices) mask[i] = ink[i] >= threshold
 
-        cleanLines(mask, w, h, opt.minArea, opt.dropLargeBlocks)
+        // 分辨率变化时换算参数：噪点面积按平方增长，线宽按线性增长
+        val scale = max(w, h).toFloat() / BASE_SIDE
+        val minArea = (opt.minArea * scale * scale).roundToInt().coerceAtLeast(1)
+        val thicken =
+            if (opt.thicken > 0) (opt.thicken * scale).roundToInt().coerceAtLeast(1) else 0
 
-        val finalMask = if (opt.thicken > 0) dilate(mask, w, h, opt.thicken) else mask
-        return render(finalMask, w, h)
+        cleanLines(mask, w, h, minArea, opt.dropLargeBlocks)
+
+        // 闭运算：把断成一段一段的线接起来
+        val closed = if (opt.closeGaps) close(mask, w, h, scale.roundToInt().coerceAtLeast(1)) else mask
+
+        val finalMask = if (thicken > 0) dilate(closed, w, h, thicken) else closed
+        return LineArt(finalMask, w, h)
+    }
+
+    /** 完整管线：原图 → 黑线白底线稿位图 */
+    fun process(source: Bitmap, opt: Options = Options()): Bitmap =
+        renderLine(processMask(source, opt))
+
+    /** 按原分辨率渲染成黑线白底位图（用于导出 / 打印） */
+    fun renderLine(art: LineArt): Bitmap {
+        val out = Bitmap.createBitmap(art.w, art.h, Bitmap.Config.ARGB_8888)
+        val px = IntArray(art.w * art.h)
+        for (i in px.indices) px[i] = if (art.mask[i]) Color.BLACK else Color.WHITE
+        out.setPixels(px, 0, art.w, 0, 0, art.w, art.h)
+        return out
+    }
+
+    /**
+     * 网格里的小预览图：按墨迹覆盖率做降采样，
+     * 比直接缩放位图清楚得多，不会糊成灰团。
+     */
+    fun renderPreview(art: LineArt, maxSide: Int = 320): Bitmap {
+        val scale = min(1f, maxSide.toFloat() / max(art.w, art.h))
+        val w = max(1, (art.w * scale).roundToInt())
+        val h = max(1, (art.h * scale).roundToInt())
+        val step = 1f / scale
+        val px = IntArray(w * h)
+        for (y in 0 until h) {
+            val sy0 = (y * step).toInt()
+            val sy1 = min(art.h, ((y + 1) * step).toInt().coerceAtLeast(sy0 + 1))
+            for (x in 0 until w) {
+                val sx0 = (x * step).toInt()
+                val sx1 = min(art.w, ((x + 1) * step).toInt().coerceAtLeast(sx0 + 1))
+                var ink = 0
+                var total = 0
+                for (sy in sy0 until sy1) {
+                    val row = sy * art.w
+                    for (sx in sx0 until sx1) {
+                        if (art.mask[row + sx]) ink++
+                        total++
+                    }
+                }
+                val dark = if (total == 0) 0f else ink.toFloat() / total
+                val v = (255 * (1f - dark)).roundToInt().coerceIn(0, 255)
+                px[y * w + x] = Color.rgb(v, v, v)
+            }
+        }
+        val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        out.setPixels(px, 0, w, 0, 0, w, h)
+        return out
     }
 
     // ------------------------------------------------------------------
@@ -408,15 +477,43 @@ object ColoringProcessor {
         return out
     }
 
-    // ------------------------------------------------------------------
-    // 7. 出图：黑线白底
-    // ------------------------------------------------------------------
-
-    private fun render(mask: BooleanArray, w: Int, h: Int): Bitmap {
-        val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        val px = IntArray(w * h)
-        for (i in px.indices) px[i] = if (mask[i]) Color.BLACK else Color.WHITE
-        out.setPixels(px, 0, w, 0, 0, w, h)
+    /** 腐蚀：可分离最小值滤波 */
+    private fun erode(mask: BooleanArray, w: Int, h: Int, r: Int): BooleanArray {
+        val tmp = BooleanArray(w * h)
+        for (y in 0 until h) {
+            val row = y * w
+            for (x in 0 until w) {
+                var v = true
+                var xx = x - r
+                val end = x + r
+                while (v && xx <= end) {
+                    if (xx >= 0 && xx < w && !mask[row + xx]) v = false
+                    xx++
+                }
+                tmp[row + x] = v
+            }
+        }
+        val out = BooleanArray(w * h)
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                var v = true
+                var yy = y - r
+                val end = y + r
+                while (v && yy <= end) {
+                    if (yy >= 0 && yy < h && !tmp[yy * w + x]) v = false
+                    yy++
+                }
+                out[y * w + x] = v
+            }
+        }
         return out
     }
+
+    /** 闭运算 = 膨胀后腐蚀：连接断线、填掉线上的小孔，不改变线宽 */
+    private fun close(mask: BooleanArray, w: Int, h: Int, r: Int): BooleanArray =
+        erode(dilate(mask, w, h, r), w, h, r)
+
+    // ------------------------------------------------------------------
+    // 7. 出图：见上面的 renderLine / renderPreview
+    // ------------------------------------------------------------------
 }

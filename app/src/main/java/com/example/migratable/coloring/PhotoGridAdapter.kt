@@ -11,13 +11,16 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.migratable.R
+import java.util.concurrent.atomic.AtomicLong
 
-/** 相册里的一张照片 */
+private val photoIdSeq = AtomicLong(1)
+
+/** 一张待处理的图片（可以来自系统相册选择，也可以来自相册扫描） */
 data class PhotoItem(
-    val id: Long,
     val uri: Uri,
-    val name: String,
-    var selected: Boolean = false,
+    val name: String = "",
+    val id: Long = photoIdSeq.getAndIncrement(),
+    var selected: Boolean = true,
     /** 原始照片缩略图 */
     var thumb: Bitmap? = null,
     /** 生成后的线稿缩略图 */
@@ -28,10 +31,11 @@ data class PhotoItem(
     val isDone: Boolean get() = lineThumb != null
 }
 
-/** 相册九宫格：点击切换选中，线稿生成后原地替换为线稿预览 */
+/** 图片九宫格：点击切换选中，线稿生成后原地替换为线稿预览 */
 class PhotoGridAdapter(
     private val onToggle: (PhotoItem) -> Unit,
-    private val onNeedThumb: (PhotoItem) -> Unit
+    private val onNeedThumb: (PhotoItem) -> Unit,
+    private val onRemove: (PhotoItem) -> Unit
 ) : RecyclerView.Adapter<PhotoGridAdapter.VH>() {
 
     private val items = mutableListOf<PhotoItem>()
@@ -46,6 +50,14 @@ class PhotoGridAdapter(
 
     fun indexOf(item: PhotoItem) = items.indexOf(item)
 
+    fun removeAt(index: Int) {
+        if (index in items.indices) {
+            items.removeAt(index)
+            notifyItemRemoved(index)
+            notifyItemRangeChanged(index, items.size - index)
+        }
+    }
+
     val current: List<PhotoItem> get() = items
 
     class VH(v: View) : RecyclerView.ViewHolder(v) {
@@ -53,6 +65,7 @@ class PhotoGridAdapter(
         val img: ImageView = v.findViewById(R.id.img_photo)
         val check: CheckBox = v.findViewById(R.id.check_photo)
         val badge: TextView = v.findViewById(R.id.text_badge)
+        val remove: TextView = v.findViewById(R.id.btn_remove_photo)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = VH(
@@ -88,6 +101,8 @@ class PhotoGridAdapter(
             else -> ""
         }
         if (!item.failed && !item.isDone) holder.badge.visibility = View.GONE
+
+        holder.remove.setOnClickListener { onRemove(item) }
 
         holder.itemView.setOnClickListener {
             item.selected = !item.selected

@@ -2,14 +2,15 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/frame_photo"
     android:layout_width="match_parent"
-    android:layout_height="104dp"
-    android:layout_margin="2dp"
+    android:layout_height="128dp"
+    android:layout_margin="3dp"
     android:background="#00000000">
 
     <ImageView
         android:id="@+id/img_photo"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:background="#11000000"
         android:scaleType="centerCrop"
         android:contentDescription="照片" />
 
@@ -19,18 +20,32 @@
         android:layout_height="wrap_content"
         android:layout_gravity="top|end" />
 
+    <!-- 从列表移除（不删原图） -->
+    <TextView
+        android:id="@+id/btn_remove_photo"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_gravity="top|start"
+        android:layout_margin="2dp"
+        android:background="@drawable/bg_badge_circle"
+        android:gravity="center"
+        android:text="×"
+        android:textColor="#FFFFFF"
+        android:textSize="15sp"
+        android:contentDescription="移除" />
+
     <TextView
         android:id="@+id/text_badge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|start"
-        android:layout_margin="4dp"
+        android:layout_margin="5dp"
         android:background="#CC1565C0"
-        android:paddingStart="6dp"
-        android:paddingEnd="6dp"
-        android:paddingTop="1dp"
-        android:paddingBottom="1dp"
+        android:paddingStart="7dp"
+        android:paddingEnd="7dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
         android:textColor="#FFFFFF"
-        android:textSize="11sp"
+        android:textSize="12sp"
         android:visibility="gone" />
 </FrameLayout>

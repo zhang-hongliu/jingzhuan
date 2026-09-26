@@ -24,14 +24,16 @@ object ColoringPdfExporter {
     private const val MARGIN = 40
     private const val SUB_DIR = "妥妥涂色画"
 
-    /** 每页一张线稿，居中并等比缩放 */
-    fun build(images: List<Bitmap>): ByteArray {
+    /** 每页一张线稿，居中并等比缩放；逐页渲染 + 回收，高清也不占内存 */
+    fun build(arts: List<ColoringProcessor.LineArt>): ByteArray {
         val doc = PdfDocument()
-        images.forEachIndexed { index, bmp ->
+        arts.forEachIndexed { index, art ->
+            val bmp = ColoringProcessor.renderLine(art)
             val info = PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, index + 1).create()
             val page = doc.startPage(info)
             drawCentered(page.canvas, bmp)
             doc.finishPage(page)
+            bmp.recycle()
         }
         val out = ByteArrayOutputStream()
         doc.writeTo(out)
